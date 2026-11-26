@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: d2a0cc56e3c96a941639b3efbd0704c8fa45f7b6d0ed3e530731160b4dd591e5
+_hash: b7cb1fa33b713bbabe618be286b4ba6c9db194b55001f9d40cd91219fee2b3b8
 file:
 - statement:
     use_statement:
@@ -196,4 +196,111 @@ file:
     - keyword: FOR
     - keyword: ALL
     - keyword: COLUMNS
+- statement_terminator: ;
+- statement:
+    create_catalog_statement:
+    - keyword: CREATE
+    - keyword: CATALOG
+    - keyword: IF
+    - keyword: NOT
+    - keyword: EXISTS
+    - quoted_identifier: '`my-cat`'
+    - keyword: COMMENT
+    - quoted_literal: "'catalog description'"
+    - keyword: WITH
+    - bracketed:
+      - start_bracket: (
+      - quoted_literal: "'type'"
+      - comparison_operator:
+          raw_comparison_operator: '='
+      - quoted_literal: "'generic_in_memory'"
+      - end_bracket: )
+- statement_terminator: ;
+- statement:
+    compile_plan_statement:
+    - keyword: COMPILE
+    - keyword: PLAN
+    - quoted_literal: "'/tmp/plan.json'"
+    - keyword: IF
+    - keyword: NOT
+    - keyword: EXISTS
+    - keyword: FOR
+    - insert_statement:
+      - keyword: INSERT
+      - keyword: INTO
+      - table_reference:
+          naked_identifier: sink_table
+      - select_statement:
+          select_clause:
+            keyword: SELECT
+            select_clause_element:
+              wildcard_expression:
+                wildcard_identifier:
+                  star: '*'
+          from_clause:
+            keyword: FROM
+            from_expression:
+              from_expression_element:
+                table_expression:
+                  table_reference:
+                    naked_identifier: source_table
+- statement_terminator: ;
+- statement:
+    compile_plan_statement:
+    - keyword: COMPILE
+    - keyword: AND
+    - keyword: EXECUTE
+    - keyword: PLAN
+    - quoted_literal: "'/tmp/plan.json'"
+    - keyword: FOR
+    - keyword: STATEMENT
+    - keyword: SET
+    - keyword: BEGIN
+    - insert_statement:
+      - keyword: INSERT
+      - keyword: INTO
+      - table_reference:
+          naked_identifier: sink_a
+      - select_statement:
+          select_clause:
+            keyword: SELECT
+            select_clause_element:
+              wildcard_expression:
+                wildcard_identifier:
+                  star: '*'
+          from_clause:
+            keyword: FROM
+            from_expression:
+              from_expression_element:
+                table_expression:
+                  table_reference:
+                    naked_identifier: source_a
+    - statement_terminator: ;
+    - insert_statement:
+      - keyword: INSERT
+      - keyword: INTO
+      - table_reference:
+          naked_identifier: sink_b
+      - select_statement:
+          select_clause:
+            keyword: SELECT
+            select_clause_element:
+              wildcard_expression:
+                wildcard_identifier:
+                  star: '*'
+          from_clause:
+            keyword: FROM
+            from_expression:
+              from_expression_element:
+                table_expression:
+                  table_reference:
+                    naked_identifier: source_b
+    - statement_terminator: ;
+    - keyword: END
+- statement_terminator: ;
+- statement:
+    execute_plan_statement:
+    - keyword: EXECUTE
+    - keyword: PLAN
+    - quoted_literal: "'/tmp/plan.json'"
 - statement_terminator: ;

@@ -602,14 +602,19 @@ class CreateTableStatementSegment(ansi.CreateTableStatementSegment):
 
 
 class CreateCatalogStatementSegment(BaseSegment):
-    """A `CREATE CATALOG` statement."""
+    """A `CREATE CATALOG` statement.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/create/#create-catalog
+    """
 
     type = "create_catalog_statement"
     match_grammar = Sequence(
         "CREATE",
         "CATALOG",
-        Ref("NakedIdentifierSegment"),
-        Ref("CreateTableConnectorOptionsSegment"),
+        Ref("IfNotExistsGrammar", optional=True),
+        Ref("SingleIdentifierGrammar"),
+        Sequence("COMMENT", Ref("QuotedLiteralSegment"), optional=True),
+        Ref("CreateTableConnectorOptionsSegment", optional=True),
     )
 
 
@@ -643,6 +648,11 @@ class DescribeStatementSegment(BaseSegment):
                 Ref("SingleIdentifierGrammar"),
             ),
             Sequence(
+                "DATABASE",
+                Ref.keyword("EXTENDED", optional=True),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
                 "FUNCTION",
                 Ref.keyword("EXTENDED", optional=True),
                 Ref("FunctionNameSegment"),
@@ -656,7 +666,15 @@ class DescribeStatementSegment(BaseSegment):
                 Ref.keyword("EXTENDED", optional=True),
                 Ref("ObjectReferenceSegment"),
             ),
-            Ref("TableReferenceSegment"),
+            Sequence(
+                "CONNECTION",
+                Ref.keyword("EXTENDED", optional=True),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Sequence(
+                Ref.keyword("EXTENDED", optional=True),
+                Ref("TableReferenceSegment"),
+            ),
         ),
     )
 
@@ -684,15 +702,22 @@ class ShowStatementsSegment(BaseSegment):
         OneOf(
             # SHOW CURRENT CATALOG / DATABASE
             Sequence("CURRENT", OneOf("CATALOG", "DATABASE")),
-            # SHOW CREATE CATALOG / TABLE / VIEW / MATERIALIZED TABLE / MODEL
+            # SHOW CREATE CATALOG / TABLE / VIEW / [OR ALTER] MATERIALIZED TABLE /
+            # MODEL / CONNECTION
             Sequence(
                 "CREATE",
                 OneOf(
-                    Sequence("MATERIALIZED", "TABLE", Ref("TableReferenceSegment")),
+                    Sequence(
+                        Sequence("OR", "ALTER", optional=True),
+                        "MATERIALIZED",
+                        "TABLE",
+                        Ref("TableReferenceSegment"),
+                    ),
                     Sequence("CATALOG", Ref("SingleIdentifierGrammar")),
                     Sequence("TABLE", Ref("TableReferenceSegment")),
                     Sequence("VIEW", Ref("TableReferenceSegment")),
                     Sequence("MODEL", Ref("ObjectReferenceSegment")),
+                    Sequence("CONNECTION", Ref("ObjectReferenceSegment")),
                 ),
             ),
             # SHOW CATALOGS [[NOT] (LIKE | ILIKE) 'pattern']
@@ -713,9 +738,9 @@ class ShowStatementsSegment(BaseSegment):
                 Ref("FlinkShowFromClauseGrammar", optional=True),
                 Ref("FlinkShowLikeClauseGrammar", optional=True),
             ),
-            # SHOW TABLES / VIEWS / PROCEDURES / MODELS
+            # SHOW TABLES / VIEWS / PROCEDURES / MODELS / CONNECTIONS
             Sequence(
-                OneOf("TABLES", "VIEWS", "PROCEDURES", "MODELS"),
+                OneOf("TABLES", "VIEWS", "PROCEDURES", "MODELS", "CONNECTIONS"),
                 Ref("FlinkShowFromClauseGrammar", optional=True),
                 Ref("FlinkShowLikeClauseGrammar", optional=True),
             ),
@@ -829,6 +854,49 @@ class RemoveJarStatementSegment(BaseSegment):
         "REMOVE",
         "JAR",
         Ref("QuotedLiteralSegment"),
+    )
+
+
+class ExecutePlanStatementSegment(BaseSegment):
+    """An `EXECUTE PLAN` statement for FlinkSQL."""
+
+    type = "execute_plan_statement"
+    match_grammar = Sequence(
+        "EXECUTE",
+        "PLAN",
+        Ref("QuotedLiteralSegment"),
+    )
+
+
+class CompilePlanStatementSegment(BaseSegment):
+    """A `COMPILE [AND EXECUTE] PLAN` statement for FlinkSQL."""
+
+    type = "compile_plan_statement"
+    match_grammar = Sequence(
+        "COMPILE",
+        Sequence("AND", "EXECUTE", optional=True),
+        "PLAN",
+        Ref("QuotedLiteralSegment"),
+        Ref("IfNotExistsGrammar", optional=True),
+        "FOR",
+        OneOf(
+            Sequence(
+                "STATEMENT",
+                "SET",
+                "BEGIN",
+                Indent,
+                AnyNumberOf(
+                    Sequence(
+                        Ref("InsertStatementSegment"),
+                        Ref("DelimiterGrammar"),
+                    ),
+                    min_times=1,
+                ),
+                Dedent,
+                "END",
+            ),
+            Ref("InsertStatementSegment"),
+        ),
     )
 
 
@@ -984,11 +1052,13 @@ class StatementSegment(ansi.StatementSegment):
             Ref("AddJarStatementSegment"),
             Ref("AnalyzeTableStatementSegment"),
             Ref("CallStatementSegment"),
+            Ref("CompilePlanStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
             Ref("CreateDatabaseStatementSegment"),
             Ref("CreateFunctionStatementSegment"),
             Ref("DescribeStatementSegment"),
             Ref("DropCatalogStatementSegment"),
+            Ref("ExecutePlanStatementSegment"),
             Ref("ExecuteStatementSetSegment"),
             Ref("LoadModuleStatementSegment"),
             Ref("RemoveJarStatementSegment"),

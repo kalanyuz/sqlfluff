@@ -3,7 +3,7 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: b7d4439b6b706492e97d8aa316cee4e7fab9bfc4df224361739a6736f57d3ff9
+_hash: 177f24f6bf86d3b54f2169f869e7ea133f6c53f26c9088bcf0975b894a42de53
 file:
 - statement:
     show_statement:
@@ -175,6 +175,17 @@ file:
 - statement:
     show_statement:
     - keyword: SHOW
+    - keyword: CREATE
+    - keyword: OR
+    - keyword: ALTER
+    - keyword: MATERIALIZED
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: my_mt
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
     - keyword: USER
     - keyword: FUNCTIONS
     - keyword: FROM
@@ -207,4 +218,22 @@ file:
     - keyword: MODEL
     - object_reference:
         naked_identifier: my_model
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CONNECTIONS
+    - keyword: FROM
+    - object_reference:
+        naked_identifier: db1
+    - keyword: LIKE
+    - quoted_literal: "'%http%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CREATE
+    - keyword: CONNECTION
+    - object_reference:
+        naked_identifier: my_conn
 - statement_terminator: ;

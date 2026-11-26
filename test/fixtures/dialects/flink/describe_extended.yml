@@ -3,12 +3,21 @@
 # computed by SQLFluff when running the tests. Please run
 # `python test/generate_parse_fixture_yml.py`  to generate them after adding or
 # altering SQL files.
-_hash: b7db8a57ed59360014f81cd2a9d29af7bc35bec5142ec109899798c1154985d1
+_hash: fd2aaa682d8b0c918334ef97d3c8ede3fa4d8d989a7eb207ae61aee07621ab4a
 file:
 - statement:
     describe_statement:
       keyword: DESC
       table_reference:
+      - naked_identifier: my_db
+      - dot: .
+      - naked_identifier: my_table
+- statement_terminator: ;
+- statement:
+    describe_statement:
+    - keyword: DESCRIBE
+    - keyword: EXTENDED
+    - table_reference:
       - naked_identifier: my_db
       - dot: .
       - naked_identifier: my_table
@@ -25,6 +34,16 @@ file:
     - keyword: DESC
     - keyword: CATALOG
     - naked_identifier: my_cat
+- statement_terminator: ;
+- statement:
+    describe_statement:
+    - keyword: DESCRIBE
+    - keyword: DATABASE
+    - keyword: EXTENDED
+    - object_reference:
+      - naked_identifier: my_cat
+      - dot: .
+      - naked_identifier: my_db
 - statement_terminator: ;
 - statement:
     describe_statement:
@@ -49,4 +68,12 @@ file:
     - keyword: EXTENDED
     - object_reference:
         naked_identifier: my_model
+- statement_terminator: ;
+- statement:
+    describe_statement:
+    - keyword: DESCRIBE
+    - keyword: CONNECTION
+    - keyword: EXTENDED
+    - object_reference:
+        naked_identifier: my_conn
 - statement_terminator: ;

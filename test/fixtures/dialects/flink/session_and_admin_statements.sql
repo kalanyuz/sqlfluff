@@ -36,3 +36,22 @@ ANALYZE TABLE my_table PARTITION (dt = '2026-01-01', region)
 COMPUTE STATISTICS FOR COLUMNS col1, col2;
 
 ANALYZE TABLE my_table COMPUTE STATISTICS FOR ALL COLUMNS;
+
+CREATE CATALOG IF NOT EXISTS `my-cat` COMMENT 'catalog description'
+WITH (
+    'type' = 'generic_in_memory'
+);
+
+COMPILE PLAN '/tmp/plan.json' IF NOT EXISTS
+FOR INSERT INTO sink_table
+SELECT *
+FROM source_table;
+
+COMPILE AND EXECUTE PLAN '/tmp/plan.json'
+FOR STATEMENT SET
+BEGIN
+    INSERT INTO sink_a SELECT * FROM source_a;
+    INSERT INTO sink_b SELECT * FROM source_b;
+END;
+
+EXECUTE PLAN '/tmp/plan.json';
