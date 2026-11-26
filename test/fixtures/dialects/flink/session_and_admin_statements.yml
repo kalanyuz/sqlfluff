@@ -1,0 +1,199 @@
+# YML test files are auto-generated from SQL files and should not be edited by
+# hand. To help enforce this, the "hash" field in the file must match a hash
+# computed by SQLFluff when running the tests. Please run
+# `python test/generate_parse_fixture_yml.py`  to generate them after adding or
+# altering SQL files.
+_hash: d2a0cc56e3c96a941639b3efbd0704c8fa45f7b6d0ed3e530731160b4dd591e5
+file:
+- statement:
+    use_statement:
+    - keyword: USE
+    - keyword: MODULES
+    - naked_identifier: hive
+    - comma: ','
+    - naked_identifier: core
+- statement_terminator: ;
+- statement:
+    load_module_statement:
+    - keyword: LOAD
+    - keyword: MODULE
+    - naked_identifier: hive
+    - keyword: WITH
+    - bracketed:
+      - start_bracket: (
+      - quoted_literal: "'hive-version'"
+      - comparison_operator:
+          raw_comparison_operator: '='
+      - quoted_literal: "'3.1.3'"
+      - end_bracket: )
+- statement_terminator: ;
+- statement:
+    load_module_statement:
+    - keyword: LOAD
+    - keyword: MODULE
+    - naked_identifier: core
+- statement_terminator: ;
+- statement:
+    unload_module_statement:
+    - keyword: UNLOAD
+    - keyword: MODULE
+    - naked_identifier: hive
+- statement_terminator: ;
+- statement:
+    reset_statement:
+      keyword: RESET
+- statement_terminator: ;
+- statement:
+    reset_statement:
+      keyword: RESET
+      quoted_literal: "'table.planner'"
+- statement_terminator: ;
+- statement:
+    reset_statement:
+    - keyword: RESET
+    - naked_identifier: table
+    - dot: .
+    - naked_identifier: local
+    - binary_operator: '-'
+    - naked_identifier: time
+    - binary_operator: '-'
+    - naked_identifier: zone
+- statement_terminator: ;
+- statement:
+    set_statement:
+    - keyword: SET
+    - naked_identifier: table
+    - dot: .
+    - naked_identifier: local
+    - binary_operator: '-'
+    - naked_identifier: time
+    - binary_operator: '-'
+    - naked_identifier: zone
+    - comparison_operator:
+        raw_comparison_operator: '='
+    - naked_identifier: UTC
+- statement_terminator: ;
+- statement:
+    set_statement:
+    - keyword: SET
+    - naked_identifier: execution
+    - dot: .
+    - naked_identifier: checkpointing
+    - dot: .
+    - naked_identifier: interval
+    - comparison_operator:
+        raw_comparison_operator: '='
+    - numeric_literal: '5'
+    - naked_identifier: s
+- statement_terminator: ;
+- statement:
+    set_statement:
+    - keyword: SET
+    - naked_identifier: table
+    - dot: .
+    - naked_identifier: planner
+    - comparison_operator:
+        raw_comparison_operator: '='
+    - naked_identifier: blink
+- statement_terminator: ;
+- statement:
+    add_jar_statement:
+    - keyword: ADD
+    - keyword: JAR
+    - quoted_literal: "'/path/to/my-udf.jar'"
+- statement_terminator: ;
+- statement:
+    remove_jar_statement:
+    - keyword: REMOVE
+    - keyword: JAR
+    - quoted_literal: "'/path/to/my-udf.jar'"
+- statement_terminator: ;
+- statement:
+    stop_job_statement:
+    - keyword: STOP
+    - keyword: JOB
+    - quoted_literal: "'228d70913eab60dda85c5e7f78b5782c'"
+- statement_terminator: ;
+- statement:
+    stop_job_statement:
+    - keyword: STOP
+    - keyword: JOB
+    - quoted_literal: "'228d70913eab60dda85c5e7f78b5782c'"
+    - keyword: WITH
+    - keyword: SAVEPOINT
+- statement_terminator: ;
+- statement:
+    stop_job_statement:
+    - keyword: STOP
+    - keyword: JOB
+    - quoted_literal: "'228d70913eab60dda85c5e7f78b5782c'"
+    - keyword: WITH
+    - keyword: SAVEPOINT
+    - keyword: WITH
+    - keyword: DRAIN
+- statement_terminator: ;
+- statement:
+    call_statement:
+      keyword: CALL
+      function:
+        function_name:
+          naked_identifier: sys
+          dot: .
+          function_name_identifier: generate_n
+        function_contents:
+          bracketed:
+          - start_bracket: (
+          - expression:
+              quoted_literal: "'my_table'"
+          - comma: ','
+          - expression:
+              numeric_literal: '5'
+          - end_bracket: )
+- statement_terminator: ;
+- statement:
+    analyze_table_statement:
+    - keyword: ANALYZE
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: my_table
+    - keyword: COMPUTE
+    - keyword: STATISTICS
+- statement_terminator: ;
+- statement:
+    analyze_table_statement:
+    - keyword: ANALYZE
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: my_table
+    - keyword: PARTITION
+    - bracketed:
+      - start_bracket: (
+      - naked_identifier: dt
+      - comparison_operator:
+          raw_comparison_operator: '='
+      - quoted_literal: "'2026-01-01'"
+      - comma: ','
+      - naked_identifier: region
+      - end_bracket: )
+    - keyword: COMPUTE
+    - keyword: STATISTICS
+    - keyword: FOR
+    - keyword: COLUMNS
+    - column_reference:
+        naked_identifier: col1
+    - comma: ','
+    - column_reference:
+        naked_identifier: col2
+- statement_terminator: ;
+- statement:
+    analyze_table_statement:
+    - keyword: ANALYZE
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: my_table
+    - keyword: COMPUTE
+    - keyword: STATISTICS
+    - keyword: FOR
+    - keyword: ALL
+    - keyword: COLUMNS
+- statement_terminator: ;

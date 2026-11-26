@@ -1,0 +1,210 @@
+# YML test files are auto-generated from SQL files and should not be edited by
+# hand. To help enforce this, the "hash" field in the file must match a hash
+# computed by SQLFluff when running the tests. Please run
+# `python test/generate_parse_fixture_yml.py`  to generate them after adding or
+# altering SQL files.
+_hash: b7d4439b6b706492e97d8aa316cee4e7fab9bfc4df224361739a6736f57d3ff9
+file:
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CATALOGS
+    - keyword: LIKE
+    - quoted_literal: "'%log1'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CATALOGS
+    - keyword: NOT
+    - keyword: ILIKE
+    - quoted_literal: "'%log%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CURRENT
+    - keyword: CATALOG
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CREATE
+    - keyword: CATALOG
+    - naked_identifier: cat2
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: DATABASES
+    - keyword: FROM
+    - object_reference:
+        naked_identifier: cat1
+    - keyword: LIKE
+    - quoted_literal: "'%db%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CURRENT
+    - keyword: DATABASE
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: TABLES
+    - keyword: FROM
+    - object_reference:
+      - naked_identifier: cat1
+      - dot: .
+      - naked_identifier: db1
+    - keyword: NOT
+    - keyword: LIKE
+    - quoted_literal: "'%tmp%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CREATE
+    - keyword: TABLE
+    - table_reference:
+      - naked_identifier: cat1
+      - dot: .
+      - naked_identifier: db1
+      - dot: .
+      - naked_identifier: orders
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: COLUMNS
+    - keyword: FROM
+    - table_reference:
+        naked_identifier: orders
+    - keyword: LIKE
+    - quoted_literal: "'%id%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: COLUMNS
+    - keyword: IN
+    - table_reference:
+      - naked_identifier: db1
+      - dot: .
+      - naked_identifier: orders
+    - keyword: NOT
+    - keyword: LIKE
+    - quoted_literal: "'%_r'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: PARTITIONS
+    - table_reference:
+        naked_identifier: table1
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: PARTITIONS
+    - table_reference:
+        naked_identifier: table1
+    - keyword: PARTITION
+    - bracketed:
+      - start_bracket: (
+      - naked_identifier: id
+      - comparison_operator:
+          raw_comparison_operator: '='
+      - numeric_literal: '100'
+      - comma: ','
+      - naked_identifier: dt
+      - comparison_operator:
+          raw_comparison_operator: '='
+      - quoted_literal: "'2026-01-01'"
+      - end_bracket: )
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: PROCEDURES
+    - keyword: FROM
+    - object_reference:
+        naked_identifier: db1
+    - keyword: ILIKE
+    - quoted_literal: "'%gen%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: VIEWS
+    - keyword: IN
+    - object_reference:
+        naked_identifier: db1
+    - keyword: LIKE
+    - quoted_literal: "'v_%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CREATE
+    - keyword: VIEW
+    - table_reference:
+        naked_identifier: my_view
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: MATERIALIZED
+    - keyword: TABLES
+    - keyword: FROM
+    - object_reference:
+        naked_identifier: db1
+    - keyword: LIKE
+    - quoted_literal: "'mt_%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CREATE
+    - keyword: MATERIALIZED
+    - keyword: TABLE
+    - table_reference:
+        naked_identifier: my_mt
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: USER
+    - keyword: FUNCTIONS
+    - keyword: FROM
+    - object_reference:
+        naked_identifier: db1
+    - keyword: NOT
+    - keyword: ILIKE
+    - quoted_literal: "'%tmp%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: FULL
+    - keyword: MODULES
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: MODELS
+    - keyword: FROM
+    - object_reference:
+        naked_identifier: db1
+    - keyword: LIKE
+    - quoted_literal: "'%gpt%'"
+- statement_terminator: ;
+- statement:
+    show_statement:
+    - keyword: SHOW
+    - keyword: CREATE
+    - keyword: MODEL
+    - object_reference:
+        naked_identifier: my_model
+- statement_terminator: ;

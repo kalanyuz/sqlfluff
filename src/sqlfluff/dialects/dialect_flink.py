@@ -27,6 +27,7 @@ from sqlfluff.core.parser import (
     StringParser,
     SymbolSegment,
     TypedParser,
+    WordSegment,
 )
 from sqlfluff.dialects import dialect_ansi as ansi
 from sqlfluff.dialects.dialect_flink_keywords import (
@@ -185,12 +186,16 @@ flink_dialect.add(
     DoubleEqualsSegment=StringParser("==", SymbolSegment, type="double_equals"),
     # Row pattern quantifier used by MATCH_RECOGNIZE
     QuestionMarkSegment=StringParser("?", SymbolSegment, type="question_mark"),
-    FlinkPropertyNamePartSegment=Sequence(
+    FlinkPropertyWordSegment=OneOf(
         Ref("SingleIdentifierGrammar"),
+        TypedParser("word", WordSegment, type="naked_identifier"),
+    ),
+    FlinkPropertyNamePartSegment=Sequence(
+        Ref("FlinkPropertyWordSegment"),
         AnyNumberOf(
             Sequence(
                 Ref("MinusSegment"),
-                Ref("SingleIdentifierGrammar"),
+                Ref("FlinkPropertyWordSegment"),
                 allow_gaps=False,
             ),
         ),
@@ -204,12 +209,27 @@ flink_dialect.add(
         Ref("QuotedLiteralSegment"),
     ),
     FlinkPropertyValueSegment=OneOf(
+        Sequence(
+            Ref("NumericLiteralSegment"),
+            Ref("FlinkPropertyWordSegment"),
+        ),
         Ref("LiteralGrammar"),
         Delimited(
             Ref("FlinkPropertyNamePartSegment"),
             delimiter=Ref("DotSegment"),
             allow_gaps=False,
         ),
+    ),
+    # LIKE / NOT LIKE / ILIKE / NOT ILIKE pattern clause for SHOW statements
+    FlinkShowLikeClauseGrammar=Sequence(
+        Ref.keyword("NOT", optional=True),
+        OneOf("LIKE", "ILIKE"),
+        Ref("QuotedLiteralSegment"),
+    ),
+    # (FROM | IN) [catalog.]database clause for SHOW statements
+    FlinkShowFromClauseGrammar=Sequence(
+        OneOf("FROM", "IN"),
+        Ref("ObjectReferenceSegment"),
     ),
     # Connector options for CREATE TABLE
     CreateTableConnectorOptionsSegment=Sequence(
@@ -608,12 +628,36 @@ class CreateDatabaseStatementSegment(BaseSegment):
 
 
 class DescribeStatementSegment(BaseSegment):
-    """A `DESCRIBE` statement for FlinkSQL."""
+    """A `DESCRIBE` / `DESC` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/describe/
+    """
 
     type = "describe_statement"
     match_grammar = Sequence(
-        "DESCRIBE",
-        Ref("TableReferenceSegment"),
+        OneOf("DESCRIBE", "DESC"),
+        OneOf(
+            Sequence(
+                "CATALOG",
+                Ref.keyword("EXTENDED", optional=True),
+                Ref("SingleIdentifierGrammar"),
+            ),
+            Sequence(
+                "FUNCTION",
+                Ref.keyword("EXTENDED", optional=True),
+                Ref("FunctionNameSegment"),
+            ),
+            Sequence(
+                "JOB",
+                Ref("QuotedLiteralSegment"),
+            ),
+            Sequence(
+                "MODEL",
+                Ref.keyword("EXTENDED", optional=True),
+                Ref("ObjectReferenceSegment"),
+            ),
+            Ref("TableReferenceSegment"),
+        ),
     )
 
 
@@ -629,21 +673,283 @@ class ExplainStatementSegment(ansi.ExplainStatementSegment):
 
 
 class ShowStatementsSegment(BaseSegment):
-    """A `SHOW` statement for FlinkSQL."""
+    """A `SHOW` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/show/
+    """
 
     type = "show_statement"
     match_grammar = Sequence(
         "SHOW",
         OneOf(
-            "CATALOGS",
-            "DATABASES",
-            "TABLES",
-            "VIEWS",
-            "FUNCTIONS",
-            "MODULES",
+            # SHOW CURRENT CATALOG / DATABASE
+            Sequence("CURRENT", OneOf("CATALOG", "DATABASE")),
+            # SHOW CREATE CATALOG / TABLE / VIEW / MATERIALIZED TABLE / MODEL
+            Sequence(
+                "CREATE",
+                OneOf(
+                    Sequence("MATERIALIZED", "TABLE", Ref("TableReferenceSegment")),
+                    Sequence("CATALOG", Ref("SingleIdentifierGrammar")),
+                    Sequence("TABLE", Ref("TableReferenceSegment")),
+                    Sequence("VIEW", Ref("TableReferenceSegment")),
+                    Sequence("MODEL", Ref("ObjectReferenceSegment")),
+                ),
+            ),
+            # SHOW CATALOGS [[NOT] (LIKE | ILIKE) 'pattern']
+            Sequence(
+                "CATALOGS",
+                Ref("FlinkShowLikeClauseGrammar", optional=True),
+            ),
+            # SHOW DATABASES [(FROM | IN) catalog] [[NOT] (LIKE | ILIKE) 'pattern']
+            Sequence(
+                "DATABASES",
+                Ref("FlinkShowFromClauseGrammar", optional=True),
+                Ref("FlinkShowLikeClauseGrammar", optional=True),
+            ),
+            # SHOW MATERIALIZED TABLES [(FROM | IN) db] [[NOT] (LIKE | ILIKE) 'pattern']
+            Sequence(
+                "MATERIALIZED",
+                "TABLES",
+                Ref("FlinkShowFromClauseGrammar", optional=True),
+                Ref("FlinkShowLikeClauseGrammar", optional=True),
+            ),
+            # SHOW TABLES / VIEWS / PROCEDURES / MODELS
+            Sequence(
+                OneOf("TABLES", "VIEWS", "PROCEDURES", "MODELS"),
+                Ref("FlinkShowFromClauseGrammar", optional=True),
+                Ref("FlinkShowLikeClauseGrammar", optional=True),
+            ),
+            # SHOW COLUMNS (FROM | IN) table [[NOT] (LIKE | ILIKE) 'pattern']
+            Sequence(
+                "COLUMNS",
+                OneOf("FROM", "IN"),
+                Ref("TableReferenceSegment"),
+                Ref("FlinkShowLikeClauseGrammar", optional=True),
+            ),
+            # SHOW PARTITIONS table [PARTITION (k = v, ...)]
+            Sequence(
+                "PARTITIONS",
+                Ref("TableReferenceSegment"),
+                Sequence(
+                    "PARTITION",
+                    Bracketed(
+                        Delimited(
+                            Sequence(
+                                Ref("SingleIdentifierGrammar"),
+                                Ref("EqualsSegment"),
+                                Ref("LiteralGrammar"),
+                            ),
+                        ),
+                    ),
+                    optional=True,
+                ),
+            ),
+            # SHOW [USER] FUNCTIONS [(FROM | IN) db] [[NOT] (LIKE | ILIKE) 'pattern']
+            Sequence(
+                Ref.keyword("USER", optional=True),
+                "FUNCTIONS",
+                Ref("FlinkShowFromClauseGrammar", optional=True),
+                Ref("FlinkShowLikeClauseGrammar", optional=True),
+            ),
+            # SHOW [FULL] MODULES
+            Sequence(
+                Ref.keyword("FULL", optional=True),
+                "MODULES",
+            ),
             "JARS",
             "JOBS",
         ),
+    )
+
+
+class LoadModuleStatementSegment(BaseSegment):
+    """A `LOAD MODULE` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/load/
+    """
+
+    type = "load_module_statement"
+    match_grammar = Sequence(
+        "LOAD",
+        "MODULE",
+        Ref("SingleIdentifierGrammar"),
+        Ref("CreateTableConnectorOptionsSegment", optional=True),
+    )
+
+
+class UnloadModuleStatementSegment(BaseSegment):
+    """An `UNLOAD MODULE` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/unload/
+    """
+
+    type = "unload_module_statement"
+    match_grammar = Sequence(
+        "UNLOAD",
+        "MODULE",
+        Ref("SingleIdentifierGrammar"),
+    )
+
+
+class ResetStatementSegment(BaseSegment):
+    """A `RESET` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/reset/
+    """
+
+    type = "reset_statement"
+    match_grammar = Sequence(
+        "RESET",
+        Ref("FlinkPropertyNameSegment", optional=True),
+    )
+
+
+class AddJarStatementSegment(BaseSegment):
+    """An `ADD JAR` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/jar/#add-jar
+    """
+
+    type = "add_jar_statement"
+    match_grammar = Sequence(
+        "ADD",
+        "JAR",
+        Ref("QuotedLiteralSegment"),
+    )
+
+
+class RemoveJarStatementSegment(BaseSegment):
+    """A `REMOVE JAR` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/jar/#remove-jar
+    """
+
+    type = "remove_jar_statement"
+    match_grammar = Sequence(
+        "REMOVE",
+        "JAR",
+        Ref("QuotedLiteralSegment"),
+    )
+
+
+class StopJobStatementSegment(BaseSegment):
+    """A `STOP JOB` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/job/#stop-job
+    """
+
+    type = "stop_job_statement"
+    match_grammar = Sequence(
+        "STOP",
+        "JOB",
+        Ref("QuotedLiteralSegment"),
+        Sequence("WITH", "SAVEPOINT", optional=True),
+        Sequence("WITH", "DRAIN", optional=True),
+    )
+
+
+class CallStatementSegment(BaseSegment):
+    """A `CALL` procedure statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/call/
+    """
+
+    type = "call_statement"
+    match_grammar = Sequence(
+        "CALL",
+        Ref("FunctionSegment"),
+    )
+
+
+class AnalyzeTableStatementSegment(BaseSegment):
+    """An `ANALYZE TABLE` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/analyze/
+    """
+
+    type = "analyze_table_statement"
+    match_grammar = Sequence(
+        "ANALYZE",
+        "TABLE",
+        Ref("TableReferenceSegment"),
+        Sequence(
+            "PARTITION",
+            Bracketed(
+                Delimited(
+                    Sequence(
+                        Ref("SingleIdentifierGrammar"),
+                        Sequence(
+                            Ref("EqualsSegment"),
+                            Ref("LiteralGrammar"),
+                            optional=True,
+                        ),
+                    ),
+                ),
+            ),
+            optional=True,
+        ),
+        "COMPUTE",
+        "STATISTICS",
+        Sequence(
+            "FOR",
+            OneOf(
+                Sequence("ALL", "COLUMNS"),
+                Sequence(
+                    "COLUMNS",
+                    Delimited(Ref("ColumnReferenceSegment")),
+                ),
+            ),
+            optional=True,
+        ),
+    )
+
+
+class DropCatalogStatementSegment(BaseSegment):
+    """A `DROP CATALOG` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/drop/#drop-catalog
+    """
+
+    type = "drop_catalog_statement"
+    match_grammar = Sequence(
+        "DROP",
+        "CATALOG",
+        Ref("IfExistsGrammar", optional=True),
+        Ref("SingleIdentifierGrammar"),
+    )
+
+
+class DropViewStatementSegment(ansi.DropViewStatementSegment):
+    """A `DROP VIEW` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/drop/#drop-view
+    """
+
+    match_grammar = Sequence(
+        "DROP",
+        Ref("TemporaryGrammar", optional=True),
+        "VIEW",
+        Ref("IfExistsGrammar", optional=True),
+        Ref("TableReferenceSegment"),
+    )
+
+
+class DropFunctionStatementSegment(ansi.DropFunctionStatementSegment):
+    """A `DROP FUNCTION` statement for FlinkSQL.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/drop/#drop-function
+    """
+
+    match_grammar = Sequence(
+        "DROP",
+        OneOf(
+            Sequence("TEMPORARY", "SYSTEM"),
+            "TEMPORARY",
+            optional=True,
+        ),
+        "FUNCTION",
+        Ref("IfExistsGrammar", optional=True),
+        Ref("FunctionNameSegment"),
     )
 
 
@@ -675,19 +981,31 @@ class StatementSegment(ansi.StatementSegment):
     match_grammar = ansi.StatementSegment.match_grammar.copy(
         insert=[
             # FlinkSQL-specific statements
+            Ref("AddJarStatementSegment"),
+            Ref("AnalyzeTableStatementSegment"),
+            Ref("CallStatementSegment"),
             Ref("CreateCatalogStatementSegment"),
             Ref("CreateDatabaseStatementSegment"),
             Ref("CreateFunctionStatementSegment"),
             Ref("DescribeStatementSegment"),
+            Ref("DropCatalogStatementSegment"),
             Ref("ExecuteStatementSetSegment"),
+            Ref("LoadModuleStatementSegment"),
+            Ref("RemoveJarStatementSegment"),
+            Ref("ResetStatementSegment"),
             Ref("ShowStatementsSegment"),
             Ref("SetStatementSegment"),
+            Ref("StopJobStatementSegment"),
+            Ref("UnloadModuleStatementSegment"),
         ],
     )
 
 
 class UseStatementSegment(ansi.UseStatementSegment):
-    """A FlinkSQL USE statement."""
+    """A FlinkSQL USE statement.
+
+    https://nightlies.apache.org/flink/flink-docs-stable/docs/dev/table/sql/use/
+    """
 
     type = "use_statement"
     match_grammar = OneOf(
@@ -697,6 +1015,12 @@ class UseStatementSegment(ansi.UseStatementSegment):
             "USE",
             "CATALOG",
             Ref("ObjectReferenceSegment"),
+        ),
+        # USE MODULES module1 [, module2, ...]
+        Sequence(
+            "USE",
+            "MODULES",
+            Delimited(Ref("SingleIdentifierGrammar")),
         ),
         # USE [catalog_name.]database_name
         Sequence(

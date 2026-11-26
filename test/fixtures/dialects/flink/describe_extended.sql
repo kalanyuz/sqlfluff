@@ -1,0 +1,11 @@
+DESC my_db.my_table;
+
+DESCRIBE CATALOG EXTENDED my_cat;
+
+DESC CATALOG my_cat;
+
+DESCRIBE FUNCTION EXTENDED my_db.`my-fn`;
+
+DESCRIBE JOB '228d70913eab60dda85c5e7f78b5782c';
+
+DESC MODEL EXTENDED my_model;
